@@ -1,0 +1,409 @@
+---
+title: "Prediction of Heart Disease"
+author: "Claudia Lo" "Lindsay Maher"
+date: "11/18/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+##Slide 1
+Prediction of Heart Disease
+
+##Slide 2
+-H0: There is no relationship between the heart laboratory variables and heart disease, cardiovascular events or heart health
+-Ha: Laboratory values have an effect on heart disease, cardiovascular events, and heart health
+
+## R Markdown
+```{r}
+library(corrplot)
+library(ggplot2)
+library(polycor)
+library(car)
+library(pastecs)
+library(psych)
+library(ggm)
+library(boot)
+library(Hmisc)
+library(plotly)
+library(ggbeeswarm)
+library(dplyr)
+```
+```{r}
+getwd()
+#setwd("C:/Users/claud/OneDrive/Desktop/fall 2021/stat comp/heart repo/prediction_of_heart_desease-project-4")
+```
+
+
+
+```{r}
+#Import dataset
+heart_disease<-read.csv("./data/heart.csv",header = TRUE, sep = ",")
+```
+
+
+```{r}
+#check for NA's
+any(is.na(heart_disease))
+```
+
+
+```{r}
+summary(heart_disease)
+str(heart_disease)
+```
+
+
+#Perform univariate distribution analysis for as many variables as possible, confirmed by quantitative values that describe the plots
+```{r}
+#histograms for numerical variables
+hist(heart_disease$Age)
+hist(heart_disease$RestingBP)
+hist(heart_disease$Cholesterol)
+hist(heart_disease$MaxHR)
+hist(heart_disease$Oldpeak)
+```
+
+
+```{r}
+heart_disease$Sex<-as.factor(heart_disease$Sex)
+heart_disease$ChestPainType<-as.factor(heart_disease$ChestPainType)
+heart_disease$FastingBS<-as.factor(heart_disease$FastingBS)
+heart_disease$RestingECG<-as.factor(heart_disease$RestingECG)
+heart_disease$ExerciseAngina<-as.factor(heart_disease$ExerciseAngina)
+heart_disease$ST_Slope<-as.factor(heart_disease$ST_Slope)
+str(heart_disease)
+```
+
+#visualizing our categorical variables 
+```{r}
+#barplot for Sex variable
+df <- heart_disease %>%
+		  filter(!is.na(Sex)) %>%  
+		  group_by(Sex) %>%
+  summarise(count_m= n())
+		p <-ggplot(df, aes(x = Sex, y = count_m)) +
+		  geom_bar(fill = "#B006F9", stat = "identity") +
+		  geom_text(aes(label = count_m), vjust = -0.25,size = 4) + 
+		  theme(axis.text = element_text(colour = "blue"),text = element_text(size=10),axis.line = element_line(size = 4, colour = "grey80"),axis.text.x = element_text(angle = 90, vjust = 0.45, hjust=1)) + ylab("Number of females and males in Sex category") + xlab("Sex") + ggtitle(labs(title = "Distribution of Sex"))
+p
+```
+
+
+
+```{r}
+#barplot for ChestPainType variable
+df <- heart_disease %>%
+		  filter(!is.na(ChestPainType)) %>%  
+		  group_by(ChestPainType) %>%
+  summarise(count_m= n())
+		p <-ggplot(df, aes(x = ChestPainType, y = count_m)) +
+		  geom_bar(fill = "#F9062B", stat = "identity") +
+		  geom_text(aes(label = count_m), vjust = -0.25,size = 4) + 
+		  theme(axis.text = element_text(colour = "blue"),text = element_text(size=10),axis.line = element_line(size = 4, colour = "grey80"),axis.text.x = element_text(angle = 90, vjust = 0.45, hjust=1)) + ylab("Number of types of chest pain") + xlab("Chest Pain Type") + ggtitle(labs(title = "Distribution of Chest Pain Types"))
+p
+```
+
+
+
+```{r}
+#barplot for FastingBS variable
+df <- heart_disease %>%
+		  filter(!is.na(FastingBS)) %>% 
+		  group_by(FastingBS) %>%
+  summarise(count_m= n())
+		p <-ggplot(df, aes(x = FastingBS, y = count_m)) +
+		  geom_bar(fill = "#3DDAEB", stat = "identity") +
+		  geom_text(aes(label = count_m), vjust = -0.25,size = 4) + 
+		  theme(axis.text = element_text(colour = "blue"),text = element_text(size=10),axis.line = element_line(size = 4, colour = "grey80"),axis.text.x = element_text(angle = 90, vjust = 0.45, hjust=1)) + ylab("Number of fasting blood sugars") + xlab("Fasting Blood Sugar") + ggtitle(labs(title = "Distribution of Fasting Blood Sugar"))
+p
+```
+
+```{r}
+#barplot for RestingECG variable
+df <- heart_disease %>%
+		  filter(!is.na(RestingECG)) %>%  
+		  group_by(RestingECG) %>%
+  summarise(count_m= n())
+		p <-ggplot(df, aes(x = RestingECG, y = count_m)) +
+		  geom_bar(fill = "#3DEB90", stat = "identity") +
+		  geom_text(aes(label = count_m), vjust = -0.25,size = 4) + 
+		  theme(axis.text = element_text(colour = "blue"),text = element_text(size=10),axis.line = element_line(size = 4, colour = "grey80"),axis.text.x = element_text(angle = 90, vjust = 0.45, hjust=1)) + ylab("Number of types of Resting ECG Results") + xlab("Resting ECG Results") + ggtitle(labs(title = "Distribution of Resting ECG Results"))
+p
+```
+
+
+
+```{r}
+#barplot for ExerciseAngina variable
+df <- heart_disease %>%
+		  filter(!is.na(ExerciseAngina)) %>%  
+		  group_by(ExerciseAngina) %>%
+  summarise(count_m= n())
+		p <-ggplot(df, aes(x = ExerciseAngina, y = count_m)) +
+		  geom_bar(fill = "#EB3DDB", stat = "identity") +
+		  geom_text(aes(label = count_m), vjust = -0.25,size = 4) + 
+		  theme(axis.text = element_text(colour = "blue"),text = element_text(size=10),axis.line = element_line(size = 4, colour = "grey80"),axis.text.x = element_text(angle = 90, vjust = 0.45, hjust=1)) + ylab("Number of females and males in Sex category") + xlab("Exercise Induced Angina") + ggtitle(labs(title = "Distribution of Exercise Induced Angina"))
+p
+```
+
+
+
+```{r}
+#barplot for ST_Slope variable
+df <- heart_disease %>%
+		  filter(!is.na(ST_Slope)) %>% 
+		  group_by(ST_Slope) %>%
+  summarise(count_m= n())
+		p <-ggplot(df, aes(x = ST_Slope, y = count_m)) +
+		  geom_bar(fill = "#EBA13D", stat = "identity") +
+		  geom_text(aes(label = count_m), vjust = -0.25,size = 4) + 
+		  theme(axis.text = element_text(colour = "blue"),text = element_text(size=10),axis.line = element_line(size = 4, colour = "grey80"),axis.text.x = element_text(angle = 90, vjust = 0.45, hjust=1)) + ylab("Number of types of ST segment slopes") + xlab("ST segment slopes") + ggtitle(labs(title = "Distribution of ST Segment Slopes"))
+p
+```
+
+```{r}
+df <- heart_disease %>%
+		  filter(!is.na(FastingBS)) %>% 
+		  group_by(HeartDisease) %>%
+  summarise(count_m= n())
+		p <-ggplot(df, aes(x = HeartDisease, y = count_m)) +
+		  geom_bar(fill = "#3DDAEB", stat = "identity") +
+		  geom_text(aes(label = count_m), vjust = -0.25,size = 4) + 
+		  theme(axis.text = element_text(colour = "blue"),text = element_text(size=10),axis.line = element_line(size = 4, colour = "grey80"),axis.text.x = element_text(angle = 90, vjust = 0.45, hjust=1)) + ylab("positive for heart disease") + xlab("Heart Disease") + ggtitle(labs(title = "Distribution of Heart Disease"))
+p
+```
+
+```{r}
+#Document all the abnormalities observed and the decisions made to resolve them  during the exploratory data analysis
+shapiro.test(heart_disease$Age)
+shapiro.test(heart_disease$RestingBP)
+shapiro.test(heart_disease$Cholesterol)
+shapiro.test(heart_disease$MaxHR)
+shapiro.test(heart_disease$Oldpeak)
+stat.desc(cbind(heart_disease$Age,heart_disease$RestingBP,heart_disease$Cholesterol,heart_disease$MaxHR,heart_disease$Oldpeak), basic = FALSE, norm = TRUE)
+#Since the p-values for Age, RestingBP,Cholesterol, MaxHR and Oldpeak are less than 0.05, we can reject H0 and say that the distribution is not normal.
+```
+
+
+
+#Plot grouped density and grouped histogram, to visualize frequency distributionof outcome variables and other variables in the dataset
+
+```{r}
+#RestingBP and Age_cat
+heart_disease$Age_cat[heart_disease$Age>= 18 & heart_disease$Age<= 35]= "young adult"
+heart_disease$Age_cat[heart_disease$Age>= 36 & heart_disease$Age<= 55]= "middle adult"
+heart_disease$Age_cat[heart_disease$Age>= 56 & heart_disease$Age<= 65]= "older adult"
+heart_disease$Age_cat[heart_disease$Age>= 66 & heart_disease$Age<= 110]= "elderly adult"
+
+ggplot(heart_disease, aes(x = RestingBP, fill = Age_cat)) + geom_histogram(colour = "black",binwidth = .1, lwd = .75, linetype= 1,position = "identity", alpha = 4) + labs(x = "Resting BP", y = "Frequency", title = "Distribution of Resting BP by Age")
+
+Densityplot <- ggplot(data = heart_disease,aes(x=RestingBP,fill= Age_cat ))+ geom_density(alpha = 0.9,cex=1)+ggtitle(labs(title = "Distribution of Resting BP by Age"))+theme(text = element_text(size=10))
+Densityplot
+```
+
+```{r}
+#MaxHR and Age_cat
+heart_disease$Age_cat[heart_disease$Age>= 18 & heart_disease$Age<= 35]= "young adult"
+heart_disease$Age_cat[heart_disease$Age>= 36 & heart_disease$Age<= 55]= "middle adult"
+heart_disease$Age_cat[heart_disease$Age>= 56 & heart_disease$Age<= 65]= "older adult"
+heart_disease$Age_cat[heart_disease$Age>= 66 & heart_disease$Age<= 110]= "elderly adult"
+
+ggplot(heart_disease, aes(x = MaxHR, fill = Age_cat)) + geom_histogram(colour = "black",binwidth = .1, lwd = .75, linetype= 1,position = "identity", alpha = 4) + labs(x = "Max HR", y = "Frequency", title = "Distribution of Max HR by Age")
+
+Densityplot <- ggplot(data = heart_disease,aes(x=MaxHR,fill= Age_cat ))+ geom_density(alpha = 0.9,cex=1)+ggtitle(labs(title = "Distribution of Max HR by Age"))+theme(text = element_text(size=10))
+Densityplot
+```
+```{r}
+summary(heart_disease$Cholesterol)
+```
+
+```{r}
+#restingBP and Cholesterol_cat
+heart_disease$Cholesterol_cat[heart_disease$Cholesterol>=0 & heart_disease$Cholesterol<= 200]= "normal"
+heart_disease$Cholesterol_cat[heart_disease$Cholesterol>=201 & heart_disease$Cholesterol<= 603]= "high"
+
+ggplot(heart_disease, aes(x = RestingBP, fill = Cholesterol_cat)) + geom_histogram(colour = "black",binwidth = .2, lwd = .75, linetype= 1,position = "identity", alpha = 4) + labs(x = "Resting BP", y = "Frequency", title = "Distribution of Resting BP by Cholesterol")
+
+Densityplot <- ggplot(data = heart_disease,aes(x=RestingBP,fill= Cholesterol_cat ))+ geom_density(alpha = 0.7,cex=1)+ggtitle(labs(title = "Distribution of Resting BP by Cholesterol"))+theme(text = element_text(size=10))
+Densityplot
+```
+
+```{r}
+summary(heart_disease$RestingBP)
+```
+
+```{r setup, include=FALSE}
+#MaxHR and RestingBP_cat
+heart_disease$RestingBP_cat[heart_disease$RestingBP>= 0 & heart_disease$RestingBP<= 120]= "normal"
+heart_disease$RestingBP_cat[heart_disease$RestingBP>= 121& heart_disease$RestingBP<= 200]= "high"
+
+
+ggplot(heart_disease, aes(x = MaxHR, fill = RestingBP_cat)) + geom_histogram(colour = "black", binwidth = .2, lwd = .75, linetype= 1,position = "identity", alpha = 4) + labs(x = "Max Heart Rate", y = "Frequency", title = "Distribution of Max HR by RestingBP")
+
+Densityplot <- ggplot(data = heart_disease,aes(x=MaxHR,fill= RestingBP_cat ))+ geom_density(alpha = 0.7,cex=1)+ggtitle(labs(title = "Distribution of Max HR by Resting BP"))+theme(text = element_text(size=10))
+Densityplot
+
+```
+
+```{r}
+heart_disease$HeartDisease<-as.factor(heart_disease$HeartDisease)
+```
+
+#Plot grouped categorical plots to visualize patterns that may exist in any relationships within the dataset
+
+```{r}
+#grouped barplot for HeartDisease and Age_cat
+d4 <- heart_disease %>%
+  group_by(HeartDisease,Age_cat) %>%
+  summarise(count=n()) %>%
+  mutate(perc=count/sum(count))
+bar4 <- ggplot(data=d4, aes(x=HeartDisease, y=perc, fill=Age_cat)) +
+  geom_bar(position = 'dodge', stat ='identity')+scale_y_continuous(labels = scales::percent)+labs(x = "Heart Disease", y = "Percentage of Heart Disease", fill = "Age_cat") + ggtitle(labs(title = "Heart Disease by Age"))+ theme(text = element_text(size=10))+ geom_text(aes(label = scales::percent(perc),y = perc),position=position_dodge(width=0.7), vjust = -0.25,size=3.5)
+bar4  + facet_grid(. ~ HeartDisease,scales='free')
+```
+
+```{r}
+#grouped bar plot for HeartDisease and restingBP_cat
+d5 <- heart_disease %>%
+  group_by(HeartDisease,RestingBP_cat) %>%
+  summarise(count=n()) %>%
+  mutate(perc=count/sum(count))
+bar5 <- ggplot(data=d5, aes(x=HeartDisease, y=perc, fill=RestingBP_cat)) +
+  geom_bar(position = 'dodge', stat ='identity')+scale_y_continuous(labels = scales::percent)+labs(x = "Heart Disease", y = "Percentage of Heart Disease", fill = "RestingBP_cat") + ggtitle(labs(title = "Heart Disease by Resting Blood Pressure"))+ theme(text = element_text(size=10))+ geom_text(aes(label = scales::percent(perc),y = perc),position=position_dodge(width=0.7), vjust = -0.25,size=3.5)
+bar5  + facet_grid(. ~ HeartDisease,scales='free')
+	
+```
+
+
+```{r}
+#grouped bar plot for HeartDisease and Cholesterol_cat
+d6 <- heart_disease %>%
+  group_by(HeartDisease,Cholesterol_cat) %>%
+  summarise(count=n()) %>%
+  mutate(perc=count/sum(count))
+bar6 <- ggplot(data=d6, aes(x=HeartDisease, y=perc, fill=Cholesterol_cat)) +
+  geom_bar(position = 'dodge', stat ='identity')+scale_y_continuous(labels = scales::percent)+labs(x = "Heart Disease", y = "Percentage of Heart Disease", fill = "Cholesterol_cat") + ggtitle(labs(title = "Heart Disease by Cholesterol Level"))+ theme(text = element_text(size=10))+ geom_text(aes(label = scales::percent(perc),y = perc),position=position_dodge(width=0.7), vjust = -0.25,size=3.5)
+bar6  + facet_grid(. ~ HeartDisease,scales='free')
+
+```
+
+
+```{r}
+summary(heart_disease$MaxHR)
+summary(heart_disease$Age)
+```
+
+```{r}
+#grouped barplot for Age_cat and MaxHR_cat
+heart_disease$MaxHR_cat[heart_disease$MaxHR>= 143 & heart_disease$MaxHR<= 192]= "normal"
+heart_disease$MaxHR_cat[heart_disease$MaxHR<= 143]= "abnormal_1"
+heart_disease$MaxHR_cat[heart_disease$MaxHR>= 192]= "abnormal_2"
+table(heart_disease$MaxHR_cat)
+```
+
+
+```{r}
+d6 <- heart_disease %>%
+  group_by(Age_cat,MaxHR_cat) %>%
+  summarise(count=n()) %>%
+  mutate(perc=count/sum(count))
+bar6 <- ggplot(data=d6, aes(x=Age_cat, y=perc, fill=MaxHR_cat)) +
+  geom_bar(position = 'dodge', stat ='identity')+scale_y_continuous(labels = scales::percent)+labs(x = "Age_cat", y = "Max Heart Rate", fill = "MaxHR_cat") + ggtitle(labs(title = "Distribution of Age_cat and MaxHR_cat"))+ theme(text = element_text(size=10))+ geom_text(aes(label = scales::percent(perc),y = perc),position=position_dodge(width=0.7), vjust = -0.25,size=3.5)
+bar6  + facet_grid(. ~ Age_cat,scales='free')
+```
+
+#Build correlation matrix to confirm the magnitude of the correlation coefficient and direction of observed relationships
+```{r}
+heart_disease_sub_num<-heart_disease[,c("Age","RestingBP","Cholesterol", "MaxHR", "Oldpeak")]
+```
+
+```{r setup, include=FALSE}
+#RestingBP and Age
+cor(heart_disease_sub_num, use="complete.obs", method="pearson")
+cor.test(heart_disease$RestingBP,heart_disease$Age,alternative="less",method="pearson")
+
+c<-cor(heart_disease_sub_num,use="complete.obs", method="pearson")
+corrplot(c,method="color",title = "Relationship between  variables in heart disease",addgrid.col ="grey",addCoef.col = "pink")
+scatterplotMatrix (heart_disease_sub_num, spread=FALSE, smoother.args=list(lty=2), main="Scatter Plot Matrix")
+```
+
+#Use the observed correlation relationships to predict the outcome variable with some form of regression 
+```{r}
+#logistic regression
+
+model.1<-glm(HeartDisease~Age+Sex+ChestPainType+RestingBP+Cholesterol+FastingBS+RestingECG+MaxHR+ExerciseAngina+Oldpeak+ST_Slope,data=heart_disease,family=binomial())
+
+model.2<-glm(HeartDisease~Age+ChestPainType+RestingBP+Cholesterol+RestingECG+MaxHR+ExerciseAngina+Oldpeak,data=heart_disease, family=binomial())
+
+model.3<-glm(HeartDisease~ChestPainType+RestingBP+ExerciseAngina,data=heart_disease,family=binomial())
+```
+
+
+```{r}
+summary(model.1)
+summary(model.2)
+summary(model.3)
+```
+
+```{r}
+logisticPseudoR2s <- function(LogModel) {
+	dev <- LogModel$deviance 
+	nullDev <- LogModel$null.deviance 
+	modelN <- length(LogModel$fitted.values)
+	R.l <-  1 -  dev / nullDev
+	R.cs <- 1- exp ( -(nullDev - dev) / modelN)
+	R.n <- R.cs / ( 1 - ( exp (-(nullDev / modelN))))
+	cat("Pseudo R^2 for logistic regression\n")
+	cat("Hosmer and Lemeshow R^2  ", round(R.l, 3), "\n")
+	cat("Cox and Snell R^2        ", round(R.cs, 3), "\n")
+	cat("Nagelkerke R^2           ", round(R.n, 3),    "\n")
+      }
+```
+
+```{r}
+logisticPseudoR2s(model.1)
+logisticPseudoR2s(model.2)
+logisticPseudoR2s(model.3)
+```
+
+```{r}
+#compute predicted readmission status
+heart_disease$predict <- predict(model.1, newdata = heart_disease, type = "response" )
+heart_disease$predicted_outcome <- ifelse(heart_disease$predict > 0.5,1,0)
+```
+
+
+```{r}
+table(heart_disease$HeartDisease)
+```
+
+```{r}
+#build confusion matrix
+heart_disease$conf_mat[heart_disease$predicted_outcome == 1 & heart_disease$HeartDisease == 1]= "True positive"
+heart_disease$conf_mat[heart_disease$predicted_outcome == 1 & heart_disease$HeartDisease == 0]= "False positive"
+heart_disease$conf_mat[heart_disease$predicted_outcome == 0 & heart_disease$HeartDisease == 1]= "False negative"
+heart_disease$conf_mat[heart_disease$predicted_outcome == 0 & heart_disease$HeartDisease == 0]= "True negative"
+```
+
+
+```{r}
+table(heart_disease$conf_mat)
+```
+```{r}
+#accuracy
+((458+341)/(458+341+69+50))
+```
+
+
+#Conduct bias analysis with a demographic variable if necessary
+```{r}
+#Sex
+table(heart_disease['Sex'])
+CI_normalize<-(193-725)/(193+725)
+CI_normalize
+```
+
+
